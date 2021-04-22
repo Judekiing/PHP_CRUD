@@ -1,14 +1,28 @@
 <?php
 
+
 $pdo =  new PDO('mysql:host=localhost;port=3306;dbname=products_crud', 'root', '');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 
+$id = $_GET['id'] ?? null; 
+
+if (!$id) {
+    header('Location: index.php');
+    exit;
+} 
+
+$statement = $pdo->prepare('SELECT * FROM products WHERE id = :id');
+$statement->bindValue(':id', $id);
+$statement->execute();
+$product = $statement-> fetch(PDO::FETCH_ASSOC);
+
+
 $error = [];
 
-$title = '';
-$description = '';
-$price = '';
+$title = $product['title'];
+$description = $product['description'];
+$price = $product['price'];
 
 
 if ($_SERVER['REQUEST_METHOD']==='POST'){
@@ -33,10 +47,15 @@ if ($_SERVER['REQUEST_METHOD']==='POST'){
 
     if (empty($errors)){
         $image = $_FILES['image'] ??null;
-        $imagePath = ''; 
-       
+        $imagePath = 
+        $product['image']; 
 
+        
         if ($image && $image['tmp_name']){
+            
+            if ($product['image']){
+                unlink($product['image']);
+            }
 
             $imagePath = 'images/'.randomString(8).'/'.$image['name'];
             mkdir(dirname($imagePath));
@@ -44,20 +63,21 @@ if ($_SERVER['REQUEST_METHOD']==='POST'){
             move_uploaded_file($image['tmp_name'], $imagePath);
         }
 
-        $statement = $pdo->prepare ("INSERT INTO products(title, image, description, price, created_at)
-                    VALUES(:title, :image, :description, :price, :date)");
+        $statement = $pdo->prepare ("UPDATE products SET title = :title, 
+                    image = :image, description = :description, 
+                    price = :price WHERE id = :id");
         $statement->bindValue(':title', $title);
         $statement->bindValue(':image', $imagePath);
         $statement->bindValue(':description', $description);
         $statement->bindValue(':price', $price);
-        $statement->bindValue(':date', $date);
+        $statement->bindValue(':id', $id);
+
         $statement->execute();
         header('Location: index.php');
     }    
 }
 
-function randomString($n)
-{
+function randomString($n){
     $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
     $str = '';
     for ($i = 0; $i < $n; $i++){
@@ -74,30 +94,36 @@ function randomString($n)
 
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <link rel="stylesheet" href="app.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        
+        <link rel="stylesheet" href="app.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
 
-    <title>New Product</title>
-</head> 
+        <title>Update Product</title>
+    </head> 
 <body>
-    
-<h1>New Product</h1>
 
-<?php if (!empty($errors)):  ?> 
-<div class="alert alert-danger">
-    <?php foreach ($errors as $error):?>
-        <div><?php echo $error ?></div>
-    <?php endforeach; ?>
-</div>
-<?php endif; ?>
+    <a href="index.php" class="btn btn-secondary">Go Back to Products</a>
+        
+    <h1>Update <b><?php echo $product['title'] ?></b></h1>
+
+    <?php if (!empty($errors)):  ?> 
+    <div class="alert alert-danger">
+        <?php foreach ($errors as $error):?>
+            <div><?php echo $error ?></div>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
 
 
     <form  action="" method="post" enctype="multipart/form-data">
+        <?php if ($product['image']): ?>
+            <img src="<?php echo $product['image'] ?>" class="update-image" alt="">
+        <?php endif; ?>
+
         <div class="form-group">
             <label >Product Image</label>
             <br>
