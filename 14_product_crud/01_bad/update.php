@@ -104,10 +104,12 @@ function randomString($n){
 
         <title>Update Product</title>
     </head> 
-<body>
+<body> 
 
+    <p>
     <a href="index.php" class="btn btn-secondary">Go Back to Products</a>
-        
+    </p>
+
     <h1>Update <b><?php echo $product['title'] ?></b></h1>
 
     <?php if (!empty($errors)):  ?> 
